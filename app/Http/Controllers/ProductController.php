@@ -5,18 +5,36 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProductStoreRequest;
 use App\Http\Requests\ProductUpdateRequest;
 use App\Models\Product;
+use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Database\Eloquent\Collection|\Illuminate\Http\Response
-     */
-    public function index()
+
+    public function index(Request $request)
     {
-        $product = Product::all();
-        return $product;
+//        if ($request->search)
+//        {
+//            return Product::where('name','like','%'.$request->search.'%')
+//                ->orderBy("id","desc")->get();
+//
+//        }else{
+//            return Product::orderBy("id","desc")->get();
+//        }
+
+//        $product = Product::query();
+//        if (request('search'))
+//        {
+//            return $product->where('name','like','%'.request("search").'%')
+//                ->orderBy("id","desc")->get();
+//        }else{
+//            return  $product->orderBy("id","desc")->get();
+//        }
+
+        return Product::when(request('search'),function ($query){
+            $query->where('name','like','%'.request("search").'%');
+        })->orderBy("id","desc")->paginate(5);
+
+
 
     }
 
@@ -28,15 +46,6 @@ class ProductController extends Controller
      */
     public function store(ProductStoreRequest $request)
     {
-//        $request->validate([
-//            'name'=>'required|string|min:3',
-//            'price'=>'required|numeric|min:10'
-//        ],[
-//            'name.required'=>"အမည်ထည့်ရန်လိုအပ်သည်။",
-//            'name.string'=>"အမည်ထည့်ရန်လိုအပ်သည်။",
-//            'price.required'=>"ဈေးနှုန်းထည့်ရန်လိုအပ်သည်။"
-//        ]);
-
         $product = Product::create($request->only('name','price'));
         return $product;
     }
