@@ -38,20 +38,27 @@
                         <h4>{{ isEdit ? "Edit" : "Create" }}</h4>
                     </div>
                     <div class="card-body">
-                        <form action="" @submit.prevent="isEdit ? update() : store() ">
+
+                        <form action="" @submit.prevent=" isEdit ? update() : store() ">
+<!--                            <alert-error :form="product" :message="message"></alert-error>-->
                             <div class="form-group mb-3">
                                 <label for="name">Name: </label>
-                                <input required v-model="product.name" type="text" id="name" class="form-control">
+                                <input v-model="product.name" type="text" id="name"
+                                       class="form-control">
+<!--                                <has-error :form="product" field="name"></has-error>-->
                             </div>
                             <div class="form-group mb-3">
                                 <label for="price">Price: </label>
-                                <input required v-model="product.price" type="number" id="price" class="form-control">
+                                <input v-model="product.price" type="number" id="price"
+                                       class="form-control">
+<!--                                <has-error :form="product" field="price"></has-error>-->
                             </div>
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save me-1"></i>
                                 Save
                             </button>
                         </form>
+
                     </div>
                 </div>
             </div>
@@ -96,6 +103,9 @@
             </div>
 <!--            Table end-->
 
+<!--            Loading -->
+
+<!--            Loading -->
 
         </div>
     </div>
@@ -103,23 +113,24 @@
 
 <script>
 
-    export default {
+    // import { Form,HasError,AlertError } from 'vform';
 
+
+    export default {
         name: "ProductComponent",
 
         data() {
             return {
+
+                fullPage: false,
                 isEdit : false,
                 search : '',
-                pagination:{
-                  current_page : 1,
-                },
-                page : 1 ,
                 products:{} ,
                 product: {
                     name: '',
                     price: ''
-                }
+                },
+                message : "",
             }
         },
 
@@ -132,13 +143,19 @@
                     console.error(response)
                 })
             },
-            views(page) {
-                axios.get(`/api/product?page=${page}&search=${this.search}`)
-                .then(response => {
-                    this.products = response.data;
-                }).catch(({ response })=>{
-                        console.error(response)
-                })
+            views(page=1) {
+                this.$Progress.start()
+                let loader = this.$loading.show();
+                axios
+                    .get(`/api/product?page=${page}&search=${this.search}`)
+                    .then(response => {
+                        this.products = response.data;
+                        this.$Progress.finish();
+                        loader.hide();
+                    }).catch( error => {
+                        this.$Progress.fail();
+                        loader.hide();
+                    })
             },
             create(){
                 this.isEdit = false;
@@ -146,23 +163,34 @@
                 this.product.name = "";
                 this.product.price = "";
             },
+
             store(){
-                axios.post("api/product",this.product)
-                .then(response=>{
-                    this.views();
-                    this.product = {
-                        id:'',
-                        name: '',
-                        price: ''
-                    }
-                })
+                // console.log(this.product)
+                // this.product = {id:"" ,name: "",price: ""}
+
+                axios.post("api/product/",this.product)
+                    .then(response=>{
+                        this.views();
+                        this.product = {
+                            id:'',
+                            name: '',
+                            price: ''
+                        }
+                        setTimeout(function () {
+                            // Swal.fire({title : 'Deleted!',icon : 'success'});
+                            Toast.fire({icon: 'success',title: 'Item added successfully'});
+                        },500);
+
+                    }).catch(error=>{this.message = error.response.data.message})
             },
+
             edit(product){
                 this.isEdit = true;
                 this.product.id = product.id;
                 this.product.name = product.name;
                 this.product.price = product.price;
             },
+
             update(){
                 axios.put(`/api/product/${this.product.id}`,this.product)
                     .then(response=>{
@@ -172,18 +200,35 @@
                             name: '',
                             price: ''
                         }
+                        setTimeout(function () {
+                            // Swal.fire({title : 'Deleted!',icon : 'success'});
+                            Toast.fire({icon: 'success',title: 'Edit Successfully'});
+                        },500);
                     })
                     .catch(errors=>console.log(errors))
             },
-            destroy(id){
-                if (!confirm("Are you sure to delete?")){
-                    return ;
-                }
-                axios.delete(`/api/product/${id}`)
-                .then(response=>{
-                    this.views();
+
+            destroy(id) {
+
+                Swal.fire({
+                    title: 'Are you sure?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Delete'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        axios.delete(`/api/product/${id}`).then(response => {
+                            this.views();
+                            setTimeout(function () {
+                                // Swal.fire({title : 'Deleted!',icon : 'success'});
+                                Toast.fire({icon: 'success',title: 'Delete in successfully'});
+                            },500);
+                        });
+                    }
                 })
-                .catch(errors=>console.log(errors))
+
             }
         },
 
